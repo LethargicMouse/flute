@@ -1,0 +1,11 @@
+.{
+    .name = .flute,
+    .version = "0.0.0",
+    .minimum_zig_version = "0.16.0",
+    .fingerprint = 0x8511bed5fd93ac35, // Changing this has security and trust implications.
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
