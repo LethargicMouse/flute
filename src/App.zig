@@ -1,11 +1,14 @@
 const std = @import("std");
 
 const RawTerm = @import("raw_term").RawTerm;
+
+const Opener = @import("Opener.zig");
 const Writer = @import("Writer.zig");
 
 const App = @This();
 
 term: RawTerm,
+io: std.Io,
 gpa: std.mem.Allocator,
 buf: std.ArrayList(u8) = .empty,
 running: bool = true,
@@ -15,8 +18,9 @@ pub fn init(io: std.Io, gpa: std.mem.Allocator) !App {
     const term = try RawTerm.init(io);
 
     return .{
-        .term = term,
         .gpa = gpa,
+        .io = io,
+        .term = term,
     };
 }
 
@@ -45,6 +49,11 @@ fn handleInput(app: *App, input: u8) !void {
         'i' => {
             var writer = Writer.init(app);
             try writer.run();
+        },
+        'o' => {
+            var opener = try Opener.init(app);
+            defer opener.deinit();
+            try opener.run();
         },
         else => {},
     }
