@@ -25,15 +25,19 @@ pub fn init(app: *App) !Opener {
 }
 
 pub fn run(opener: *Opener) !void {
+    opener.app.dirty = true;
     while (opener.running) {
-        try opener.draw();
-        try opener.app.term.flush();
+        if (opener.app.dirty) {
+            try opener.draw();
+            try opener.app.flush();
+        }
         try opener.update();
     }
 }
 
 fn draw(opener: *Opener) !void {
     try opener.app.term.clearScreen();
+    try opener.app.term.moveTo(1, 1);
     var iter = opener.dir.iterate();
     var i: usize = 0;
     while (try iter.next(opener.app.io)) |entry| : (i += 1) {
@@ -47,8 +51,11 @@ fn draw(opener: *Opener) !void {
 }
 
 fn update(opener: *Opener) !void {
-    const input = try opener.app.term.readByte();
-    try opener.handleInput(input);
+    const minput = try opener.app.term.readByte();
+    if (minput) |input| {
+        opener.app.dirty = true;
+        try opener.handleInput(input);
+    }
 }
 
 fn handleInput(opener: *Opener, input: u8) !void {
@@ -56,7 +63,7 @@ fn handleInput(opener: *Opener, input: u8) !void {
         'q', 27 => opener.running = false,
         'j' => opener.cursor = (opener.cursor + 1) % opener.entry_count,
         'k' => opener.cursor = (opener.cursor + opener.entry_count - 1) % opener.entry_count,
-        else => {},
+        else => opener.app.dirty = false,
     }
 }
 

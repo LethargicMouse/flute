@@ -12,9 +12,12 @@ pub fn init(app: *App) Writer {
 }
 
 pub fn run(writer: *Writer) !void {
+    writer.app.dirty = true;
     while (writer.running) {
-        try writer.draw();
-        try writer.app.term.flush();
+        if (writer.app.dirty) {
+            try writer.draw();
+            try writer.app.flush();
+        }
         try writer.update();
     }
 }
@@ -24,8 +27,11 @@ fn draw(writer: *Writer) !void {
 }
 
 fn update(writer: *Writer) !void {
-    const input = try writer.app.term.readByte();
-    try writer.handleInput(input);
+    const minput = try writer.app.term.readByte();
+    if (minput) |input| {
+        writer.app.dirty = true;
+        try writer.handleInput(input);
+    }
 }
 
 fn handleInput(writer: *Writer, input: u8) !void {
