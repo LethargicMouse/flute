@@ -24,19 +24,7 @@ pub fn init(app: *App) !Opener {
     };
 }
 
-pub fn run(opener: *Opener) !void {
-    opener.app.dirty = true;
-    while (opener.running) {
-        if (opener.app.dirty) {
-            try opener.draw();
-            try opener.app.flush();
-        }
-        try opener.update();
-    }
-}
-
-fn draw(opener: *Opener) !void {
-    try opener.app.term.clearScreen();
+pub fn draw(opener: *Opener) !void {
     try opener.app.term.moveTo(1, 1);
     var iter = opener.dir.iterate();
     var i: usize = 0;
@@ -50,15 +38,7 @@ fn draw(opener: *Opener) !void {
     }
 }
 
-fn update(opener: *Opener) !void {
-    const minput = try opener.app.term.readByte();
-    if (minput) |input| {
-        opener.app.dirty = true;
-        try opener.handleInput(input);
-    }
-}
-
-fn handleInput(opener: *Opener, input: u8) !void {
+pub fn handleInput(opener: *Opener, input: u8) !void {
     switch (input) {
         'q', 27 => opener.running = false,
         'j' => opener.cursor = (opener.cursor + 1) % opener.entry_count,
