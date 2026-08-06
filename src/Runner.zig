@@ -12,8 +12,7 @@ app: App,
 running: bool = true,
 
 pub fn init(io: std.Io, gpa: std.mem.Allocator) !Runner {
-    var app = try App.init(io, gpa);
-    try app.term.hideCursor();
+    const app = try App.init(io, gpa);
     return .{
         .app = app,
     };
@@ -27,9 +26,21 @@ pub fn handleInput(runner: *Runner, input: u8) !void {
             try runApp(&writer);
         },
         'o' => {
+            try runner.app.term.hideCursor();
             var opener = try Opener.init(&runner.app);
             defer opener.deinit();
             try runApp(&opener);
+            try runner.app.term.showCursor();
+        },
+        'h' => {
+            if (runner.app.cursor != 0) {
+                runner.app.cursor -= 1;
+            }
+        },
+        'l' => {
+            if (runner.app.cursor != runner.app.buf.items.len) {
+                runner.app.cursor += 1;
+            }
         },
         else => runner.app.dirty = false,
     }

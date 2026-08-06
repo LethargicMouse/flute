@@ -18,7 +18,13 @@ pub fn draw(writer: *Writer) !void {
 pub fn handleInput(writer: *Writer, input: u8) !void {
     switch (input) {
         27 => writer.running = false,
-        127 => _ = writer.app.buf.pop(),
-        else => try writer.app.buf.append(writer.app.gpa, input),
+        127 => {
+            _ = writer.app.buf.orderedRemove(writer.app.cursor);
+            writer.app.cursor -= 1;
+        },
+        else => {
+            try writer.app.buf.insert(writer.app.gpa, writer.app.cursor, input);
+            writer.app.cursor += 1;
+        },
     }
 }
