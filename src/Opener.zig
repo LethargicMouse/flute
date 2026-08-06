@@ -43,8 +43,25 @@ pub fn handleInput(opener: *Opener, input: u8) !void {
         'q', 27 => opener.running = false,
         'j' => opener.cursor = (opener.cursor + 1) % opener.entry_count,
         'k' => opener.cursor = (opener.cursor + opener.entry_count - 1) % opener.entry_count,
+        ' ', 10 => try opener.open(),
         else => opener.app.dirty = false,
     }
+}
+
+fn open(opener: *Opener) !void {
+    var iter = opener.dir.iterate();
+    var i: usize = 0;
+    while (try iter.next(opener.app.io)) |entry| : (i += 1) {
+        if (i == opener.cursor) {
+            var buffer: [256]u8 = undefined;
+            const text = try opener.dir.readFile(opener.app.io, entry.name, &buffer);
+            opener.app.buf.clearRetainingCapacity();
+            try opener.app.buf.appendSlice(opener.app.gpa, text);
+            opener.app.cursor = 0;
+            break;
+        }
+    }
+    opener.running = false;
 }
 
 pub fn deinit(opener: *Opener) void {

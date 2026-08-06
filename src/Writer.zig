@@ -19,8 +19,10 @@ pub fn handleInput(writer: *Writer, input: u8) !void {
     switch (input) {
         27 => writer.running = false,
         127 => {
-            _ = writer.app.buf.orderedRemove(writer.app.cursor);
-            writer.app.cursor -= 1;
+            if (writer.app.cursor != 0) {
+                _ = writer.app.buf.orderedRemove(writer.app.cursor - 1);
+                writer.app.cursor -= 1;
+            }
         },
         else => {
             try writer.app.buf.insert(writer.app.gpa, writer.app.cursor, input);
