@@ -12,6 +12,10 @@ pub fn init(app: *App) Writer {
 }
 
 pub fn draw(writer: *Writer) !void {
+    try writer.app.term.moveTo(1, 999);
+    try writer.app.term.setColor(.yellow, true);
+    try writer.app.term.writeAll("INSERT");
+    try writer.app.term.resetColor();
     try writer.app.drawBuf();
 }
 
