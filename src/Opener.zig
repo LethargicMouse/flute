@@ -1,16 +1,18 @@
 const std = @import("std");
 
 const App = @import("App.zig");
+const Buffer = @import("Buffer.zig");
 
 const Opener = @This();
 
 app: *App,
+buffer: *Buffer,
 dir: std.Io.Dir,
 cursor: usize = 0,
 entry_count: usize,
 running: bool = true,
 
-pub fn init(app: *App) !Opener {
+pub fn init(app: *App, buffer: *Buffer) !Opener {
     const dir = try std.Io.Dir.cwd().openDir(app.io, ".", .{ .iterate = true });
     var entry_count: usize = 0;
     var iter = dir.iterateAssumeFirstIteration();
@@ -19,6 +21,7 @@ pub fn init(app: *App) !Opener {
     }
     return .{
         .app = app,
+        .buffer = buffer,
         .dir = dir,
         .entry_count = entry_count,
     };
@@ -55,9 +58,9 @@ fn open(opener: *Opener) !void {
         if (i == opener.cursor) {
             var buffer: [256]u8 = undefined;
             const text = try opener.dir.readFile(opener.app.io, entry.name, &buffer);
-            opener.app.buf.clearRetainingCapacity();
-            try opener.app.buf.appendSlice(opener.app.gpa, text);
-            opener.app.cursor = 0;
+            opener.buffer.vec.clearRetainingCapacity();
+            try opener.buffer.vec.appendSlice(opener.app.gpa, text);
+            opener.buffer.cursor = 0;
             break;
         }
     }
