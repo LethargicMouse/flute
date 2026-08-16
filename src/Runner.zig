@@ -15,7 +15,7 @@ running: bool = true,
 
 pub fn init(io: std.Io, gpa: std.mem.Allocator) !Runner {
     const app = try App.init(io, gpa);
-    const buffer = Buffer.init();
+    const buffer = try Buffer.init(gpa);
     return .{
         .app = app,
         .buffer = buffer,
@@ -36,16 +36,10 @@ pub fn handleInput(runner: *Runner, input: u8) !void {
             try runApp(&opener);
             try runner.app.term.showCursor();
         },
-        'h' => {
-            if (runner.buffer.cursor != 0) {
-                runner.buffer.cursor -= 1;
-            }
-        },
-        'l' => {
-            if (runner.buffer.cursor != runner.buffer.vec.items.len) {
-                runner.buffer.cursor += 1;
-            }
-        },
+        'h' => runner.buffer.goLeft(),
+        'j' => runner.buffer.goDown(),
+        'k' => runner.buffer.goUp(),
+        'l' => runner.buffer.goRight(),
         else => runner.app.dirty = false,
     }
 }

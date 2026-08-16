@@ -26,16 +26,9 @@ pub fn draw(writer: *Writer) !void {
 
 pub fn handleInput(writer: *Writer, input: u8) !void {
     switch (input) {
+        10 => try writer.buffer.newLine(writer.app.gpa),
         27 => writer.running = false,
-        127 => {
-            if (writer.buffer.cursor != 0) {
-                _ = writer.buffer.vec.orderedRemove(writer.buffer.cursor - 1);
-                writer.buffer.cursor -= 1;
-            }
-        },
-        else => {
-            try writer.buffer.vec.insert(writer.app.gpa, writer.buffer.cursor, input);
-            writer.buffer.cursor += 1;
-        },
+        127 => try writer.buffer.remove(writer.app.gpa),
+        else => try writer.buffer.add(writer.app.gpa, input),
     }
 }

@@ -56,11 +56,7 @@ fn open(opener: *Opener) !void {
     var i: usize = 0;
     while (try iter.next(opener.app.io)) |entry| : (i += 1) {
         if (i == opener.cursor) {
-            var buffer: [256]u8 = undefined;
-            const text = try opener.dir.readFile(opener.app.io, entry.name, &buffer);
-            opener.buffer.vec.clearRetainingCapacity();
-            try opener.buffer.vec.appendSlice(opener.app.gpa, text);
-            opener.buffer.cursor = 0;
+            try opener.buffer.read(opener.app.io, opener.app.gpa, entry.name);
             break;
         }
     }
