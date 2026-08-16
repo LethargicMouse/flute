@@ -22,6 +22,9 @@ pub fn draw(buffer: Buffer, term: *RawTerm) !void {
     for (buffer.lines.items) |line| {
         try term.print("{s}\r\n", .{line.items});
     }
+}
+
+pub fn focus(buffer: Buffer, term: *RawTerm) !void {
     const x: u16 = @intCast(buffer.x);
     const y: u16 = @intCast(buffer.y);
     try term.moveTo(x + 1, y + 1);
@@ -36,19 +39,22 @@ pub fn deinit(buffer: *Buffer, gpa: std.mem.Allocator) void {
 }
 
 pub fn remove(buffer: *Buffer, gpa: std.mem.Allocator) !void {
-    if (buffer.x == 0) {
-        if (buffer.y == 0) {
-            return;
-        }
-        buffer.y -= 1;
-        buffer.x = buffer.lines.items[buffer.y].items.len;
-        try buffer.lines.items[buffer.y].appendSlice(gpa, buffer.lines.items[buffer.y + 1].items);
-        buffer.lines.items[buffer.y + 1].deinit(gpa);
-        _ = buffer.lines.orderedRemove(buffer.y + 1);
-    } else {
-        buffer.x -= 1;
-        _ = buffer.lines.items[buffer.y].orderedRemove(buffer.x);
+    if (buffer.x == 0 and buffer.y == 0) {
+        return;
     }
+    if (buffer.x == 0) {
+        try buffer.stackLine(gpa);
+    }
+    buffer.x -= 1;
+    _ = buffer.lines.items[buffer.y].orderedRemove(buffer.x);
+}
+
+fn stackLine(buffer: *Buffer, gpa: std.mem.Allocator) !void {
+    buffer.y -= 1;
+    buffer.x = buffer.lines.items[buffer.y].items.len;
+    try buffer.lines.items[buffer.y].appendSlice(gpa, buffer.lines.items[buffer.y + 1].items);
+    buffer.lines.items[buffer.y + 1].deinit(gpa);
+    _ = buffer.lines.orderedRemove(buffer.y + 1);
 }
 
 pub fn add(buffer: *Buffer, gpa: std.mem.Allocator, c: u8) !void {
@@ -56,7 +62,7 @@ pub fn add(buffer: *Buffer, gpa: std.mem.Allocator, c: u8) !void {
     buffer.x += 1;
 }
 
-pub fn read(buffer: *Buffer, io: std.Io, gpa: std.mem.Allocator, path: []const u8) !void {
+pub fn load(buffer: *Buffer, io: std.Io, gpa: std.mem.Allocator, path: []const u8) !void {
     for (buffer.lines.items) |*line| {
         line.deinit(gpa);
     }
@@ -116,4 +122,15 @@ pub fn goDown(buffer: *Buffer) void {
     if (buffer.x > line_len) {
         buffer.x = line_len;
     }
+}
+
+pub fn save(buffer: Buffer, io: std.Io, path: []const u8) !void {
+    const file = try std.Io.Dir.cwd().createFile(io, path, .{});
+    defer file.close(io);
+    var write_buffer: [2048]u8 = undefined;
+    var writer = file.writer(io, &write_buffer);
+    for (buffer.lines.items) |line| {
+        try writer.interface.print("{s}\n", .{line.items});
+    }
+    try writer.flush();
 }

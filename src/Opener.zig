@@ -56,7 +56,7 @@ fn open(opener: *Opener) !void {
     var i: usize = 0;
     while (try iter.next(opener.app.io)) |entry| : (i += 1) {
         if (i == opener.cursor) {
-            try opener.buffer.read(opener.app.io, opener.app.gpa, entry.name);
+            try opener.buffer.load(opener.app.io, opener.app.gpa, entry.name);
             break;
         }
     }
