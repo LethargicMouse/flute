@@ -1,69 +1,84 @@
 const std = @import("std");
 
-const App = @import("App.zig");
+const App = @import("raw_term").App;
+const RawTerm = @import("raw_term").RawTerm;
+
 const Buffer = @import("Buffer.zig");
+
+const Entry = struct {
+    name: []const u8,
+};
 
 const Opener = @This();
 
-app: *App,
 buffer: *Buffer,
-dir: std.Io.Dir,
+entries: []const Entry,
+arena: std.heap.ArenaAllocator,
 cursor: usize = 0,
-entry_count: usize,
 running: bool = true,
 
-pub fn init(app: *App, buffer: *Buffer) !Opener {
-    const dir = try std.Io.Dir.cwd().openDir(app.io, ".", .{ .iterate = true });
-    var entry_count: usize = 0;
+pub fn init(io: std.Io, gpa: std.mem.Allocator, buffer: *Buffer) !Opener {
+    var arena = std.heap.ArenaAllocator.init(gpa);
+    const dir = try std.Io.Dir.cwd().openDir(io, ".", .{ .iterate = true });
+    var vec = std.ArrayList(Entry).empty;
     var iter = dir.iterateAssumeFirstIteration();
-    while (try iter.next(app.io)) |_| {
-        entry_count += 1;
+    while (try iter.next(io)) |entry| {
+        const name = try arena.allocator().dupe(u8, entry.name);
+        try vec.append(gpa, .{
+            .name = name,
+        });
     }
+    const entries = try vec.toOwnedSlice(gpa);
     return .{
-        .app = app,
+        .arena = arena,
         .buffer = buffer,
-        .dir = dir,
-        .entry_count = entry_count,
+        .entries = entries,
     };
 }
 
-pub fn draw(opener: *Opener) !void {
-    try opener.app.term.moveTo(1, 1);
-    var iter = opener.dir.iterate();
-    var i: usize = 0;
-    while (try iter.next(opener.app.io)) |entry| : (i += 1) {
+pub fn start(_: Opener, term: *RawTerm) !void {
+    try term.hideCursor();
+}
+
+pub fn end(_: Opener, term: *RawTerm) !void {
+    try term.showCursor();
+}
+
+pub fn draw(opener: Opener, term: *RawTerm) !void {
+    try term.goto(1, 1);
+    for (opener.entries, 0..) |entry, i| {
         if (opener.cursor == i) {
-            try opener.app.term.writeAll(">");
+            try term.writeAll(">");
         } else {
-            try opener.app.term.writeAll(" ");
+            try term.writeAll(" ");
         }
-        try opener.app.term.print(" {s}\r\n", .{entry.name});
+        try term.print(" {s}\r\n", .{entry.name});
     }
 }
 
-pub fn handleInput(opener: *Opener, input: u8) !void {
+pub fn handleInput(opener: *Opener, input: u8, app: *App) !bool {
     switch (input) {
         'q', 27 => opener.running = false,
-        'j' => opener.cursor = (opener.cursor + 1) % opener.entry_count,
-        'k' => opener.cursor = (opener.cursor + opener.entry_count - 1) % opener.entry_count,
-        ' ', 10 => try opener.open(),
-        else => opener.app.dirty = false,
+        'j' => opener.cursor = (opener.cursor + 1) % opener.entries.len,
+        'k' => opener.cursor = (opener.cursor + opener.entries.len - 1) % opener.entries.len,
+        ' ', 10 => try opener.open(app.io, app.gpa),
+        else => return false,
     }
+    return true;
 }
 
-fn open(opener: *Opener) !void {
-    var iter = opener.dir.iterate();
-    var i: usize = 0;
-    while (try iter.next(opener.app.io)) |entry| : (i += 1) {
+fn open(opener: *Opener, io: std.Io, gpa: std.mem.Allocator) !void {
+    for (opener.entries, 0..) |entry, i| {
         if (i == opener.cursor) {
-            try opener.buffer.load(opener.app.io, opener.app.gpa, entry.name);
+            try opener.buffer.load(io, gpa, entry.name);
             break;
         }
     }
     opener.running = false;
 }
 
-pub fn deinit(opener: *Opener) void {
-    opener.dir.close(opener.app.io);
+pub fn deinit(opener: *Opener, gpa: std.mem.Allocator) void {
+    gpa.free(opener.entries);
+    opener.arena.deinit();
     opener.* = undefined;
 }

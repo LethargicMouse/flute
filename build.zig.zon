@@ -3,8 +3,8 @@
     .version = "0.0.0",
     .dependencies = .{
         .raw_term = .{
-            .url = "git+https://github.com/LethargicMouse/raw-term#9da16dd8bd9564bdc5dd902a1b327761f8eeb951",
-            .hash = "raw_term-0.0.0-MBLooxkaAABr_owyloULNu5qhqbYCbsOnx8RdU2dTOCt",
+            .url = "git+https://github.com/LethargicMouse/raw-term#1b00f69200b95a0a370f2186e242a87b2e0be65a",
+            .hash = "raw_term-0.0.0-MBLoo-8gAAAuXEQoHiW52ExsEWdQRz-ruRTGbzLD5jvy",
         },
     },
     .minimum_zig_version = "0.16.0",

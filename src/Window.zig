@@ -16,7 +16,7 @@ pub const Status = union(enum) {
                 .invalid_command => |command| try term.print("invalid command: `{s}`", .{command}),
                 .no_path => try term.writeAll("no path given"),
             }
-            try term.resetColor();
+            try term.setColor(.default, false);
         }
 
         fn deinit(err: *Error, gpa: std.mem.Allocator) void {
@@ -36,13 +36,13 @@ pub const Status = union(enum) {
         if (status == .none) {
             return;
         }
-        try term.moveTo(1, 999);
+        try term.goto(1, 999);
         switch (status) {
             .none => unreachable,
             .insert => {
                 try term.setColor(.yellow, true);
                 try term.writeAll("-- INSERT --");
-                try term.resetColor();
+                try term.setColor(.default, false);
             },
             .err => |err| try err.draw(term),
         }

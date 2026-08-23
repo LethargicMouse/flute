@@ -1,58 +1,59 @@
 const std = @import("std");
 
-const App = @import("App.zig");
+const App = @import("raw_term").App;
+const RawTerm = @import("raw_term").RawTerm;
+
 const Window = @import("Window.zig");
 
 const GetCommand = @This();
 
-app: *App,
 window: *Window,
 command: std.ArrayList(u8) = .empty,
 running: bool = true,
 
-pub fn init(app: *App, window: *Window) GetCommand {
-    window.status.set(app.gpa, .none);
+pub fn init(gpa: std.mem.Allocator, window: *Window) GetCommand {
+    window.status.set(gpa, .none);
     return .{
-        .app = app,
         .window = window,
     };
 }
 
-pub fn draw(get: GetCommand) !void {
-    try get.window.draw(&get.app.term, false);
-    try get.app.term.moveTo(1, 999);
-    try get.app.term.print(":{s}", .{get.command.items});
+pub fn draw(get: GetCommand, term: *RawTerm) !void {
+    try get.window.draw(term, false);
+    try term.goto(1, 999);
+    try term.print(":{s}", .{get.command.items});
 }
 
-pub fn handleInput(get: *GetCommand, input: u8) !void {
+pub fn handleInput(get: *GetCommand, input: u8, app: *App) !bool {
     switch (input) {
         27 => get.running = false,
-        10 => try get.submit(),
+        10 => try get.submit(app.io, app.gpa),
         127 => _ = get.command.pop(),
-        else => try get.command.append(get.app.gpa, input),
+        else => try get.command.append(app.gpa, input),
     }
+    return true;
 }
 
-fn submit(get: *GetCommand) !void {
+fn submit(get: *GetCommand, io: std.Io, gpa: std.mem.Allocator) !void {
     get.running = false;
     const command = std.mem.trim(u8, get.command.items, " ");
     if (command.len == 0) {
         return;
     }
     if (std.mem.eql(u8, command, "w")) {
-        get.window.status.set(get.app.gpa, .{ .err = .no_path });
+        get.window.status.set(gpa, .{ .err = .no_path });
         return;
     }
     if (std.mem.startsWith(u8, command, "w ")) {
         const path = command[2..]; // skipping "w "
-        try get.window.buffer.save(get.app.io, path);
+        try get.window.buffer.save(io, path);
         return;
     }
-    const owned = try get.app.gpa.dupe(u8, command);
-    get.window.status.set(get.app.gpa, .{ .err = .{ .invalid_command = owned } });
+    const owned = try gpa.dupe(u8, command);
+    get.window.status.set(gpa, .{ .err = .{ .invalid_command = owned } });
 }
 
-pub fn deinit(get: *GetCommand) void {
-    get.command.deinit(get.app.gpa);
+pub fn deinit(get: *GetCommand, gpa: std.mem.Allocator) void {
+    get.command.deinit(gpa);
     get.* = undefined;
 }

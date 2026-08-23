@@ -18,7 +18,7 @@ pub fn init(gpa: std.mem.Allocator) !Buffer {
 }
 
 pub fn draw(buffer: Buffer, term: *RawTerm) !void {
-    try term.moveTo(1, 1);
+    try term.goto(1, 1);
     for (buffer.lines.items) |line| {
         try term.print("{s}\r\n", .{line.items});
     }
@@ -27,7 +27,7 @@ pub fn draw(buffer: Buffer, term: *RawTerm) !void {
 pub fn focus(buffer: Buffer, term: *RawTerm) !void {
     const x: u16 = @intCast(buffer.x);
     const y: u16 = @intCast(buffer.y);
-    try term.moveTo(x + 1, y + 1);
+    try term.goto(x + 1, y + 1);
 }
 
 pub fn deinit(buffer: *Buffer, gpa: std.mem.Allocator) void {

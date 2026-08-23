@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const runApp = @import("raw_term").runApp;
+const App = @import("raw_term").App;
 
 const Runner = @import("Runner.zig");
 
@@ -12,7 +12,11 @@ pub fn main(init: std.process.Init) !u8 {
 }
 
 fn run(init: std.process.Init) !void {
-    var runner = try Runner.init(init.io, init.gpa);
-    defer runner.deinit();
-    try runApp(&runner);
+    var app = try App.init(init.io, init.gpa);
+    defer app.deinit();
+
+    var runner = try Runner.init(init.gpa);
+    defer runner.deinit(init.gpa);
+
+    try app.run(&runner);
 }

@@ -1,8 +1,8 @@
 const std = @import("std");
 
-const runApp = @import("raw_term").runApp;
+const App = @import("raw_term").App;
+const RawTerm = @import("raw_term").RawTerm;
 
-const App = @import("App.zig");
 const Window = @import("Window.zig");
 const GetCommand = @import("GetCommand.zig");
 const Opener = @import("Opener.zig");
@@ -10,53 +10,48 @@ const Writer = @import("Writer.zig");
 
 const Runner = @This();
 
-app: App,
 window: Window,
 running: bool = true,
 
-pub fn init(io: std.Io, gpa: std.mem.Allocator) !Runner {
-    const app = try App.init(io, gpa);
+pub fn init(gpa: std.mem.Allocator) !Runner {
     const window = try Window.init(gpa);
     return .{
-        .app = app,
         .window = window,
     };
 }
 
-pub fn handleInput(runner: *Runner, input: u8) !void {
+pub fn handleInput(runner: *Runner, input: u8, app: *App) !bool {
     switch (input) {
         'q', 27 => runner.running = false,
         'i' => {
-            var writer = Writer.init(&runner.app, &runner.window);
-            defer writer.deinit();
-            try runApp(&writer);
+            var writer = Writer.init(app.gpa, &runner.window);
+            defer writer.deinit(app.gpa);
+            try app.run(&writer);
         },
         'o' => {
-            try runner.app.term.hideCursor();
-            var opener = try Opener.init(&runner.app, &runner.window.buffer);
-            defer opener.deinit();
-            try runApp(&opener);
-            try runner.app.term.showCursor();
+            var opener = try Opener.init(app.io, app.gpa, &runner.window.buffer);
+            defer opener.deinit(app.gpa);
+            try app.run(&opener);
         },
         'h' => runner.window.buffer.goLeft(),
         'j' => runner.window.buffer.goDown(),
         'k' => runner.window.buffer.goUp(),
         'l' => runner.window.buffer.goRight(),
         ':' => {
-            var get_command = GetCommand.init(&runner.app, &runner.window);
-            defer get_command.deinit();
-            try runApp(&get_command);
+            var get_command = GetCommand.init(app.gpa, &runner.window);
+            defer get_command.deinit(app.gpa);
+            try app.run(&get_command);
         },
-        else => runner.app.dirty = false,
+        else => return false,
     }
+    return true;
 }
 
-pub fn draw(runner: *Runner) !void {
-    try runner.window.draw(&runner.app.term, true);
+pub fn draw(runner: Runner, term: *RawTerm) !void {
+    try runner.window.draw(term, true);
 }
 
-pub fn deinit(runner: *Runner) void {
-    runner.window.deinit(runner.app.gpa);
-    runner.app.deinit();
+pub fn deinit(runner: *Runner, gpa: std.mem.Allocator) void {
+    runner.window.deinit(gpa);
     runner.* = undefined;
 }
