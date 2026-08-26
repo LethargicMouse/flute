@@ -10,13 +10,13 @@ pub const Status = union(enum) {
         no_path,
 
         fn draw(err: Error, term: *RawTerm) !void {
-            try term.setColor(.red, false);
+            try term.setDisplay(&.{.{ .fg = .red }});
             try term.writeAll("error: ");
             switch (err) {
                 .invalid_command => |command| try term.print("invalid command: `{s}`", .{command}),
                 .no_path => try term.writeAll("no path given"),
             }
-            try term.setColor(.default, false);
+            try term.setDisplay(&.{.reset});
         }
 
         fn deinit(err: *Error, gpa: std.mem.Allocator) void {
@@ -40,9 +40,12 @@ pub const Status = union(enum) {
         switch (status) {
             .none => unreachable,
             .insert => {
-                try term.setColor(.yellow, true);
+                try term.setDisplay(&.{
+                    .{ .fg = .yellow },
+                    .bold,
+                });
                 try term.writeAll("-- INSERT --");
-                try term.setColor(.default, false);
+                try term.setDisplay(&.{.reset});
             },
             .err => |err| try err.draw(term),
         }
