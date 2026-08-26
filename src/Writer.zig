@@ -1,7 +1,6 @@
 const std = @import("std");
 
-const App = @import("raw_term").App;
-const RawTerm = @import("raw_term").RawTerm;
+const rt = @import("raw_term");
 
 const Buffer = @import("Buffer.zig");
 const Window = @import("Window.zig");
@@ -18,11 +17,19 @@ pub fn init(gpa: std.mem.Allocator, window: *Window) Writer {
     };
 }
 
-pub fn draw(writer: Writer, term: *RawTerm) !void {
+pub fn start(_: Writer, term: *rt.RawTerm) !void {
+    try term.setCursor(.bar);
+}
+
+pub fn end(_: Writer, term: *rt.RawTerm) !void {
+    try term.setCursor(.default);
+}
+
+pub fn draw(writer: Writer, term: *rt.RawTerm) !void {
     try writer.window.draw(term, true);
 }
 
-pub fn handleInput(writer: *Writer, input: u8, app: *App) !bool {
+pub fn handleInput(writer: *Writer, input: u8, app: *rt.App) !bool {
     switch (input) {
         10 => try writer.window.buffer.newLine(app.gpa),
         27 => writer.running = false,
