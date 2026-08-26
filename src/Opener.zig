@@ -1,7 +1,6 @@
 const std = @import("std");
 
-const App = @import("raw_term").App;
-const RawTerm = @import("raw_term").RawTerm;
+const rt = @import("raw_term");
 
 const Buffer = @import("Buffer.zig");
 
@@ -36,15 +35,15 @@ pub fn init(io: std.Io, gpa: std.mem.Allocator, buffer: *Buffer) !Opener {
     };
 }
 
-pub fn start(_: Opener, term: *RawTerm) !void {
+pub fn start(_: Opener, term: *rt.RawTerm) !void {
     try term.hideCursor();
 }
 
-pub fn end(_: Opener, term: *RawTerm) !void {
+pub fn end(_: Opener, term: *rt.RawTerm) !void {
     try term.showCursor();
 }
 
-pub fn draw(opener: Opener, term: *RawTerm) !void {
+pub fn draw(opener: Opener, term: *rt.RawTerm) !void {
     try term.goto(1, 1);
     for (opener.entries, 0..) |entry, i| {
         if (opener.cursor == i) {
@@ -56,7 +55,7 @@ pub fn draw(opener: Opener, term: *RawTerm) !void {
     }
 }
 
-pub fn handleInput(opener: *Opener, input: u8, app: *App) !bool {
+pub fn handleInput(opener: *Opener, input: u8, app: *rt.App) !bool {
     switch (input) {
         'q', 27 => opener.running = false,
         'j' => opener.cursor = (opener.cursor + 1) % opener.entries.len,
